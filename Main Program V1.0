@@ -1,0 +1,41 @@
+import hashlib
+import os
+import base64
+from cryptography.fernet import Fernet
+
+# Prompt the user to input the file path
+file_path = input("Enter the path of the file to be wiped: ")
+
+# Check if the file exists
+if not os.path.exists(file_path):
+    print("File not found.")
+    exit()
+
+# Read the file as binary data
+with open(file_path, "rb") as f:
+    data = f.read()
+
+# Hash the file data using SHA256
+file_hash = hashlib.sha256(data).hexdigest()
+
+# Use the hash as a key to encrypt the file data
+key = hashlib.sha256(file_hash.encode()).digest()
+key = base64.urlsafe_b64encode(key)
+fernet = Fernet(key)
+encrypted_data = fernet.encrypt(data)
+
+# Overwrite the file with random bytes
+with open(file_path, "wb") as f:
+    file_size = len(encrypted_data)
+    f.seek(0)
+    f.write(os.urandom(file_size))
+
+# Verify that the data has been wiped by checking that the hash has changed
+with open(file_path, "rb") as f:
+    new_data = f.read()
+    new_hash = hashlib.sha256(new_data).hexdigest()
+
+if file_hash == new_hash:
+    print("Data wiping failed.")
+else:
+    print("Data wiping successful.")
